@@ -1,6 +1,6 @@
 package com.finedine.riderservice.dto;
 
-import com.finedine.riderservice.entity.VehicleType;
+import com.finedine.riderservice.enums.VehicleType;
 import lombok.Builder;
 
 /**

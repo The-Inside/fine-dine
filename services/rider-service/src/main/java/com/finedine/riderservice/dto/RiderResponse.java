@@ -5,7 +5,7 @@ public record RiderResponse(
         String lastName,
         String email,
         String phoneNumber,
-        String vehicleNumber,
+        String licensePlateNumber,
         String vehicleType,
         String status,
         String profilePictureUrl

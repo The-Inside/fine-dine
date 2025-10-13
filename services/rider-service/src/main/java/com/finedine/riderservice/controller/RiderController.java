@@ -1,13 +1,18 @@
 package com.finedine.riderservice.controller;
 
 import com.finedine.riderservice.dto.GenericMessageResponse;
-import com.finedine.riderservice.dto.OrderRequest;
-import com.finedine.riderservice.entity.DeliveryStatus;
+import com.finedine.riderservice.dto.LocationUpdateDTO;
+import com.finedine.riderservice.dto.RiderResponse;
+import com.finedine.riderservice.entity.Delivery;
+import com.finedine.riderservice.enums.DeliveryStatus;
 import com.finedine.riderservice.entity.Rider;
 import com.finedine.riderservice.security.SecurityUser;
 import com.finedine.riderservice.service.RiderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -30,38 +35,77 @@ public class RiderController {
         return riderService.myProfile(securityUser);
     }
 
-    @GetMapping("/online")
+    @PostMapping("/online")
     @PreAuthorize("hasRole('RIDER')")
     @ResponseStatus(HttpStatus.OK)
     public GenericMessageResponse goOnline(@AuthenticationPrincipal SecurityUser securityUser) {
         return riderService.goOnline(securityUser);
     }
 
-    @GetMapping("/offline")
+    @PostMapping("/offline")
     @PreAuthorize("hasRole('RIDER')")
     @ResponseStatus(HttpStatus.OK)
     public GenericMessageResponse goOffline(@AuthenticationPrincipal SecurityUser securityUser) {
         return riderService.goOffline(securityUser);
     }
 
+    @GetMapping("/available-riders")
+    @ResponseStatus(HttpStatus.OK)
+    Page<RiderResponse> getAvailableRiders(@PageableDefault Pageable pageable) {
+        return riderService.getAvailableRiders(pageable);
+    }
+
     @GetMapping("/delivery-requests")
     @PreAuthorize("hasRole('RIDER')")
     @ResponseStatus(HttpStatus.OK)
-    public List<OrderRequest> getDeliveryRequests(@AuthenticationPrincipal SecurityUser securityUser) {
-        return riderService.getAvailableDeliveryRequests(securityUser);
+    public Page<Delivery> myDeliveryRequests(@AuthenticationPrincipal SecurityUser securityUser,
+                                             @PageableDefault Pageable pageable) {
+        return riderService.getMyDeliveryRequests(securityUser, pageable);
     }
 
-    @PostMapping("/accept-delivery/{orderId}")
+    @GetMapping("/pending-deliveries")
     @PreAuthorize("hasRole('RIDER')")
     @ResponseStatus(HttpStatus.OK)
-    public GenericMessageResponse acceptDelivery(@PathVariable Long orderId, @AuthenticationPrincipal SecurityUser securityUser) {
-        return riderService.acceptDelivery(orderId, securityUser);
+    Page<Delivery> getAllPendingDeliveries(@PageableDefault Pageable pageable) {
+        return riderService.getAllAvailableDeliveries(pageable);
     }
 
-    @PostMapping("/delivery/{orderId}/status")
+    @PostMapping("/accept-delivery/{deliveryId}")
     @PreAuthorize("hasRole('RIDER')")
     @ResponseStatus(HttpStatus.OK)
-    public GenericMessageResponse updateDeliveryStatus(@PathVariable Long orderId, @RequestBody DeliveryStatus status, @AuthenticationPrincipal SecurityUser securityUser) {
-        return riderService.updateDeliveryStatus(orderId, status, securityUser);
+    public GenericMessageResponse acceptDelivery(@PathVariable Long deliveryId, @AuthenticationPrincipal SecurityUser securityUser) {
+        return riderService.acceptDelivery(deliveryId, securityUser);
+    }
+
+    @PostMapping("/decline-delivery/{deliveryId}")
+    @PreAuthorize("hasRole('RIDER')")
+    @ResponseStatus(HttpStatus.OK)
+    GenericMessageResponse declineDelivery(@PathVariable Long deliveryId, @AuthenticationPrincipal SecurityUser securityUser) {
+        return riderService.declineDelivery(deliveryId, securityUser);
+    }
+
+    @PostMapping("/assign-delivery/{deliveryId}")
+    @ResponseStatus(HttpStatus.OK)
+    GenericMessageResponse assignDeliveryToRider(@PathVariable Long deliveryId) {
+        return riderService.assignDeliveryToRider(deliveryId);
+    }
+
+    @PostMapping("/update-location")
+    @PreAuthorize("hasRole('RIDER')")
+    @ResponseStatus(HttpStatus.OK)
+    GenericMessageResponse updateRiderLocation(@AuthenticationPrincipal SecurityUser securityUser,
+                                               @RequestParam double lat,
+                                               @RequestParam double lon) {
+        return riderService.updateRiderLocation(securityUser, lat, lon);
+    }
+
+
+    @PostMapping("/delivery/{deliveryId}/status")
+    @PreAuthorize("hasRole('RIDER')")
+    @ResponseStatus(HttpStatus.OK)
+    public GenericMessageResponse updateDeliveryStatus(@PathVariable Long deliveryId,
+                                                       @RequestParam DeliveryStatus status,
+                                                       @AuthenticationPrincipal SecurityUser securityUser) {
+        return riderService.updateDeliveryStatus(deliveryId, status, securityUser);
     }
 }

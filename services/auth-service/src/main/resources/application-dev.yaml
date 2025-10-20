@@ -43,7 +43,7 @@ cors:
 
 aws:
   s3:
-    region: ${AWS_REGION}
+    region: us-east-1
     bucket-name: ${AWS_S3_BUCKET_NAME}
   sqs:
     restaurant:

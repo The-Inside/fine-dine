@@ -1,5 +1,8 @@
 package com.finedine.riderservice.dto;
 
+import lombok.Builder;
+
+@Builder
 public record RiderResponse(
         String firstName,
         String lastName,

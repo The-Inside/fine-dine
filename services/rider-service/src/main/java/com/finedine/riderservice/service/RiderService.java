@@ -17,14 +17,14 @@ public interface RiderService {
      *
      * @param data the rider registration data
      */
-    void createRider(RiderRegistrationQueue data);
+    Rider createRider(RiderRegistrationQueue data);
 
     /**
      * Create a new delivery assignment.
      *
      * @param request the delivery assignment data
      */
-    void createDelivery(DeliveryRequestDTO request);
+    Delivery createDelivery(DeliveryRequestDTO request);
 
     /**
      * Get the rider profile of the currently authenticated rider.
@@ -102,7 +102,6 @@ public interface RiderService {
      * Update the rider's current location.
      *
      * @param securityUser the security user containing authentication details
-     * @param dto the location update data transfer object
      * @return a generic message response indicating success
      */
     GenericMessageResponse updateRiderLocation(SecurityUser securityUser, double lat, double  lon);

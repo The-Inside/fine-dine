@@ -1,7 +1,11 @@
 package com.finedine.riderservice.dto;
 
 import com.finedine.riderservice.enums.VehicleType;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
+
+
 
 /**
  * DTO for rider registration queue.
@@ -10,16 +14,33 @@ import lombok.Builder;
 
 @Builder
 public record RiderRegistrationQueue(
+        @NotNull
         Long accountId,
+
+        @NotBlank
         String email,
+
+        @NotBlank
         String externalId,
+
+        @NotBlank
         String address,
-        VehicleType vehicleType,
-        String licensePlateNumber,
-        String vehicleColor,
+
+        @NotBlank
         String phoneNumber,
+
+        @NotBlank
         String firstName,
+
+        @NotBlank
         String lastName,
+
+        VehicleType vehicleType,
+
+        String licensePlateNumber,
+
+        String vehicleColor,
+
         String profilePictureUrl
 ) {
 }

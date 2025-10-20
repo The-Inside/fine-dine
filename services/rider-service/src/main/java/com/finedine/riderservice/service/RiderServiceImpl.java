@@ -40,12 +40,12 @@ public class RiderServiceImpl implements RiderService {
      */
     @SqsListener(value = "fds-rider-registration-queue.fifo")
     @Override
-    public void createRider(RiderRegistrationQueue data) {
+    public Rider createRider(RiderRegistrationQueue data) {
 
         Rider rider = riderMapper.toRider(data);
         rider.setStatus(Status.ONLINE);
 
-        riderRepository.save(rider);
+        return riderRepository.save(rider);
     }
 
 
@@ -54,18 +54,12 @@ public class RiderServiceImpl implements RiderService {
      */
     @SqsListener(value = "fds-delivery-request-queue.fifo")
     @Override
-    public void createDelivery(DeliveryRequestDTO request) {
-        Delivery delivery = Delivery.builder()
-                .orderId(request.orderId())
-                .restaurantId(request.restaurantId())
-                .restaurantLat(request.restaurantLat())
-                .restaurantLon(request.restaurantLon())
-                .customerLat(request.customerLat())
-                .customerLon(request.customerLon())
-                .status(DeliveryStatus.PENDING)
-                .build();
+    public Delivery createDelivery(DeliveryRequestDTO request) {
 
-        deliveryRepository.save(delivery);
+        Delivery delivery = riderMapper.toDelivery(request);
+        delivery.setStatus(DeliveryStatus.PENDING);
+
+        return deliveryRepository.save(delivery);
     }
 
     /**

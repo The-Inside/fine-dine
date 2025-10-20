@@ -9,6 +9,7 @@ public record DeliveryRequestDTO(
         Long restaurantId,
         double restaurantLat,
         double restaurantLon,
+        Long customerId,
         double customerLat,
         double customerLon
 ) {}

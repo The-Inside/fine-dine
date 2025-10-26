@@ -1,6 +1,28 @@
 spring:
   application:
     name: auth-service
-
+  datasource:
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+    hikari:
+      jdbc-url: jdbc:h2:mem:testdb
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  security:
+    oauth2:
+      resource-server:
+        jwt:
+          issuer-uri: http://localhost:8081
+          jwk-set-uri: http://localhost:8081/.well-known/jwks.json
+  aws:
+    sqs:
+      enabled: false
+  spring:
+    cloud:
+      aws:
+        sqs:
+          enabled: false
 server :
   port: 8081

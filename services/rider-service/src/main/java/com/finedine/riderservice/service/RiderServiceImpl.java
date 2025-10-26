@@ -92,7 +92,7 @@ public class RiderServiceImpl implements RiderService {
     public List<OrderRequest> getAvailableDeliveryRequests(SecurityUser securityUser) {
         Rider rider = findRiderIfExists(securityUser.externalId());
         if (rider.getStatus() != Status.ONLINE) {
-            throw new UnauthorizedException("Rider must be ONLINE to view delivery requests");
+            throw new UnauthorizedException(RIDER_MUST_BE_ONLINE);
         }
 
         // Call Order Service to fetch available order requests for rider
@@ -111,7 +111,7 @@ public class RiderServiceImpl implements RiderService {
     public GenericMessageResponse acceptDelivery(Long orderId, SecurityUser securityUser) {
         Rider rider = findRiderIfExists(securityUser.externalId());
         if (rider.getStatus() != Status.ONLINE || rider.getAvailability() != Availability.AVAILABLE) {
-            throw new UnauthorizedException("Rider must be ONLINE and AVAILABLE");
+            throw new UnauthorizedException(RIDER_MUST_BE_ONLINE_AND_AVAILABLE);
         }
         rider.setAvailability(Availability.BUSY);
         riderRepository.save(rider);
@@ -122,7 +122,7 @@ public class RiderServiceImpl implements RiderService {
                 new OrderAssignmentDTO(orderId, rider.getId(), "DISPATCHED"),
                 Void.class
         );
-        return new GenericMessageResponse("Delivery request accepted");
+        return new GenericMessageResponse(DELIVERY_REQUEST_ACCEPTED);
     }
 
     /**
@@ -143,7 +143,7 @@ public class RiderServiceImpl implements RiderService {
     public GenericMessageResponse updateDeliveryStatus(Long orderId, DeliveryStatus status, SecurityUser securityUser) {
         Rider rider = findRiderIfExists(securityUser.externalId());
         if (rider.getAvailability() != Availability.BUSY) {
-            throw new UnauthorizedException("Rider must be BUSY to update delivery status");
+            throw new UnauthorizedException(RIDER_MUST_BE_BUSY);
         }
 
         // Call Order Service to update order status
@@ -157,7 +157,7 @@ public class RiderServiceImpl implements RiderService {
             rider.setAvailability(Availability.AVAILABLE);
             riderRepository.save(rider);
         }
-        return new GenericMessageResponse("Delivery status updated to " + status.toString());
+        return new GenericMessageResponse(DELIVERY_REQUEST_UPDATED + status.toString());
     }
 
     private Rider findRiderIfExists(String externalId) {
@@ -167,7 +167,7 @@ public class RiderServiceImpl implements RiderService {
 
     private void validateRider(SecurityUser securityUser, Rider rider) {
         if (securityUser.externalId() != null && !securityUser.externalId().equals(rider.getExternalId())) {
-            throw new UnauthorizedException("Restricted Action");
+            throw new UnauthorizedException(UNAUTHORIZED_ACCESS);
         }
     }
 }

@@ -14,13 +14,18 @@ import static com.finedine.authservice.CustomMessages.*;
  */
 
 public record RiderRegistrationRequest(
+    @NotBlank(message = EMAIL_NOT_BLANK)
     String email,
+
+    @NotBlank(message = PASSWORD_NOT_BLANK)
     String password,
     @NotBlank(message = NAME_NOT_BLANK)
     String firstName,
     @NotBlank(message = NAME_NOT_BLANK)
     String lastName,
+    @NotBlank(message = PHONE_NUMBER_NOT_BLANK)
     String phoneNumber,
+    @NotBlank(message = ADDRESS_NOT_BLANK)
     String address,
     VehicleType vehicleType,
     String licensePlateNumber,

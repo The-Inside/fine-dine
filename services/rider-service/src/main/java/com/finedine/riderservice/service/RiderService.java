@@ -1,12 +1,13 @@
 package com.finedine.riderservice.service;
 
 
-import com.finedine.riderservice.dto.GenericMessageResponse;
-import com.finedine.riderservice.dto.OrderRequest;
-import com.finedine.riderservice.dto.RiderRegistrationQueue;
-import com.finedine.riderservice.entity.DeliveryStatus;
+import com.finedine.riderservice.dto.*;
+import com.finedine.riderservice.entity.Delivery;
+import com.finedine.riderservice.enums.DeliveryStatus;
 import com.finedine.riderservice.entity.Rider;
 import com.finedine.riderservice.security.SecurityUser;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -16,7 +17,14 @@ public interface RiderService {
      *
      * @param data the rider registration data
      */
-    void createRider(RiderRegistrationQueue data);
+    Rider createRider(RiderRegistrationQueue data);
+
+    /**
+     * Create a new delivery assignment.
+     *
+     * @param request the delivery assignment data
+     */
+    Delivery createDelivery(DeliveryRequestDTO request);
 
     /**
      * Get the rider profile of the currently authenticated rider.
@@ -43,30 +51,61 @@ public interface RiderService {
     GenericMessageResponse goOffline(SecurityUser securityUser);
 
     /**
+     * Get a paginated list of all available riders.
+     *
+     * @return a paginated list of rider responses
+     */
+    Page<RiderResponse> getAvailableRiders(Pageable pageable);
+
+    /**
      * Get a list of available delivery requests for the rider.
      *
      * @param securityUser the security user containing authentication details
      * @return a list of available delivery requests
      */
-    List<OrderRequest> getAvailableDeliveryRequests(SecurityUser securityUser);
+    Page<Delivery> getMyDeliveryRequests(SecurityUser securityUser, Pageable pageable);
+
+    /**
+     * Get a list of all pending deliveries.
+     *
+     * @return a list of all delivery requests
+     */
+    Page<Delivery> getAllAvailableDeliveries(Pageable pageable);
 
     /**
      * Accept a delivery request.
      *
-     * @param orderId the ID of the order to accept
+     * @param deliveryId the ID of the order to accept
      * @param securityUser the security user containing authentication details
      * @return a generic message response indicating success
      */
-    GenericMessageResponse acceptDelivery(Long orderId, SecurityUser securityUser);
+    GenericMessageResponse acceptDelivery(Long deliveryId, SecurityUser securityUser);
+
+    /**
+     * Decline a delivery request.
+     *
+     * @param deliveryId the ID of the order to decline
+     * @param securityUser the security user containing authentication details
+     * @return a generic message response indicating success
+     */
+    GenericMessageResponse declineDelivery(Long deliveryId, SecurityUser securityUser);
+
+    /**
+     * Assign a delivery to a rider.
+     *
+     * @param deliveryId the ID of the delivery to assign
+     * @return a generic message response indicating success
+     */
+    GenericMessageResponse assignDeliveryToRider(Long deliveryId);
 
     /**
      * Update the rider's current location.
      *
      * @param securityUser the security user containing authentication details
-     * @param location the new location of the rider
-     * @return the updated location as a string
+     * @return a generic message response indicating success
      */
-    String updateLocation(SecurityUser securityUser, String location);
+    GenericMessageResponse updateRiderLocation(SecurityUser securityUser, double lat, double  lon);
+
 
     /**
      * Update the status of a delivery.

@@ -2,10 +2,15 @@ package com.finedine.authservice.util;
 
 import com.finedine.authservice.entity.Account;
 import com.finedine.authservice.exception.NotFoundException;
+import com.finedine.authservice.exception.PhoneNumberValidationException;
 import com.finedine.authservice.exception.UnverifiedAccountException;
 import com.finedine.authservice.repository.AccountRepository;
+import com.google.i18n.phonenumbers.NumberParseException;
+import com.google.i18n.phonenumbers.PhoneNumberUtil;
+import com.google.i18n.phonenumbers.Phonenumber;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.stereotype.Component;
 
@@ -39,7 +44,7 @@ public class Common {
         return loadAccount(null, id);
     }
 
-    public void validateAccount(Account account){
+    public Account validateAccount(Account account){
 
         if (!account.isVerified()) {
             throw new UnverifiedAccountException(UNVERIFIED_ACCOUNT);
@@ -50,5 +55,21 @@ public class Common {
         }
 
         log.info("User {} is verified and enabled", account.getEmail());
+
+        return account;
+    }
+
+    public String validatePhoneNumber(@NonNull String phoneNumber) {
+        PhoneNumberUtil phoneNumberUtil = PhoneNumberUtil.getInstance();
+        try {
+            Phonenumber.PhoneNumber parsedNumber = phoneNumberUtil.parse(phoneNumber, null);
+            if (!phoneNumberUtil.isValidNumber(parsedNumber)) {
+                throw new PhoneNumberValidationException(INVALID_PHONE_NUMBER);
+            }
+            return phoneNumber;
+
+        } catch (NumberParseException e) {
+            throw new PhoneNumberValidationException(INVALID_PHONE_NUMBER, e);
+        }
     }
 }

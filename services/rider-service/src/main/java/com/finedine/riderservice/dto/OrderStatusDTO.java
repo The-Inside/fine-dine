@@ -1,7 +1,7 @@
 package com.finedine.riderservice.dto;
 
 
-import com.finedine.riderservice.entity.DeliveryStatus;
+import com.finedine.riderservice.enums.DeliveryStatus;
 import lombok.Builder;
 
 @Builder

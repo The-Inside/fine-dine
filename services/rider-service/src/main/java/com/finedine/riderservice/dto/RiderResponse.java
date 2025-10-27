@@ -1,11 +1,14 @@
 package com.finedine.riderservice.dto;
 
+import lombok.Builder;
+
+@Builder
 public record RiderResponse(
         String firstName,
         String lastName,
         String email,
         String phoneNumber,
-        String vehicleNumber,
+        String licensePlateNumber,
         String vehicleType,
         String status,
         String profilePictureUrl

@@ -1,11 +1,15 @@
 package com.finedine.riderservice.entity;
 
+import com.finedine.riderservice.enums.Availability;
+import com.finedine.riderservice.enums.Status;
+import com.finedine.riderservice.enums.VehicleType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Objects;
 
 /**
@@ -57,21 +61,27 @@ public class Rider {
 
     private String licensePlateNumber;
 
+    @Enumerated(EnumType.STRING)
     private Status status;
 
     @Column(nullable = false)
     private String profilePictureUrl;
 
-    @Column
-    private String currentLocation;
+    private int totalDeliveries = 0;
+    private int reviewCount = 0;
+    private double rating = 4.8;
+
+    private double latitude;
+
+    private double longitude;
 
     @CreationTimestamp
-    private LocalDate createdAt;
+    private LocalDateTime createdAt;
 
     @UpdateTimestamp
-    private LocalDate updatedAt;
+    private LocalDateTime updatedAt;
 
-    private LocalDate deletedAt;
+    private LocalDateTime deletedAt;
 
     @Override
     public boolean equals(Object o) {

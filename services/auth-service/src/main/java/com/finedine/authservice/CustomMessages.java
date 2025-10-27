@@ -12,6 +12,7 @@ public class CustomMessages {
     public static final String NAME_NOT_BLANK = "Name cannot be blank";
     public static final String RESTAURANT_NAME_NOT_BLANK = "Restaurant name cannot be blank";
     public static final String PHONE_NUMBER_NOT_BLANK = "Phone number cannot be empty";
+    public static final String INVALID_PHONE_NUMBER = "Invalid phone number";
     public static final String PASSWORD_NOT_BLANK = "Password cannot be blank";
     public static final String LONGITUDE_NOT_NULL = "Longitude cannot be null";
     public static final String LATITUDE_NOT_NULL = "Latitude cannot be null";

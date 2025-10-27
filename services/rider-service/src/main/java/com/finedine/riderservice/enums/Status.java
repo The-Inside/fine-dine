@@ -1,4 +1,4 @@
-package com.finedine.riderservice.entity;
+package com.finedine.riderservice.enums;
 
 /*
  * Enum representing the status of a rider in the FineDine application.

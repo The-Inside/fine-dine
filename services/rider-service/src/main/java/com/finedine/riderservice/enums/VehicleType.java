@@ -1,4 +1,4 @@
-package com.finedine.riderservice.entity;
+package com.finedine.riderservice.enums;
 
 /*
  * Enum representing the different types of vehicles that riders can use in the FineDine application.

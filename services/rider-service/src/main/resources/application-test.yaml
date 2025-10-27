@@ -1,6 +1,18 @@
 spring:
   application:
     name: rider-service
+  datasource:
+    url: jdbc:h2:mem:testdb
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+
+
+  security:
+    oauth2:
+      resource-server:
+        jwt:
+          issuer-uri: http://localhost:8081
+          jwk-set-uri: http://localhost:8081/.well-known/jwks.json
 
 server :
-  port: 8087
+  port: 8090

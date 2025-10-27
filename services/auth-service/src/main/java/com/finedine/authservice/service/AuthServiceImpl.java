@@ -97,6 +97,7 @@ public class AuthServiceImpl implements AuthService {
         var account = createAndSaveAccount(request.email(), request.password(), request.firstName(),
                 request.lastName(), request.phoneNumber(), Role.CUSTOMER);
 
+        String validatedPhoneNumber = common.validatePhoneNumber(request.phoneNumber());
         String profilePictureUrl = null;
 
         if (request.image() != null) {
@@ -110,7 +111,7 @@ public class AuthServiceImpl implements AuthService {
                 .address(request.address())
                 .firstName(account.getFirstName())
                 .lastName(account.getLastName())
-                .phoneNumber(account.getPhoneNumber())
+                .phoneNumber(validatedPhoneNumber)
                 .profilePictureUrl(profilePictureUrl)
                 .build();
 
@@ -125,6 +126,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public GenericMessageResponse registerRider(RiderRegistrationRequest request) {
         String imageUrl = uploadImage(request.image());
+        String validatedPhoneNumber = common.validatePhoneNumber(request.phoneNumber());
 
         var account =createAndSaveAccount(request.email(), request.password(), request.firstName(),
                 request.lastName(), request.phoneNumber(), Role.RIDER);
@@ -134,7 +136,7 @@ public class AuthServiceImpl implements AuthService {
                 .email(account.getEmail())
                 .externalId(account.getExternalId())
                 .address(request.address())
-                .phoneNumber(account.getPhoneNumber())
+                .phoneNumber(validatedPhoneNumber)
                 .firstName(account.getFirstName())
                 .lastName(account.getLastName())
                 .profilePictureUrl(imageUrl)
@@ -153,7 +155,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public GenericMessageResponse registerRestaurant(RestaurantRegistrationRequest request) {
         String imageUrl = uploadImage(request.image());
-
+        String validatedPhoneNumber = common.validatePhoneNumber(request.phoneNumber());
         var account = createAndSaveAccount(request.email(), request.password(), request.ownerFirstName(),
                 request.ownerLastName(), request.phoneNumber(), Role.RESTAURANT);
 
@@ -161,7 +163,7 @@ public class AuthServiceImpl implements AuthService {
                 .email(account.getEmail())
                 .accountId(account.getId())
                 .externalId(account.getExternalId())
-                .phone(account.getPhoneNumber())
+                .phone(validatedPhoneNumber)
                 .restaurantName(request.restaurantName())
                 .address(request.address())
                 .cuisine(request.cuisine())

@@ -14,9 +14,9 @@ import org.springframework.stereotype.Controller;
 public class LocationController {
     private final RiderService riderService;
 
-    @MessageMapping("/location")
-    @SendTo("/topic/rider-location")
-    public String updateLocation(@AuthenticationPrincipal SecurityUser securityUser, String location) {
-        return riderService.updateLocation(securityUser, location);
-    }
+//    @MessageMapping("/location")
+//    @SendTo("/topic/rider-location")
+//    public String updateLocation(@AuthenticationPrincipal SecurityUser securityUser, String location) {
+//        return riderService.updateLocation(securityUser, location);
+//    }
 }

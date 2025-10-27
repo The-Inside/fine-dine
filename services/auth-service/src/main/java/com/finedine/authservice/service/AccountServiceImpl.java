@@ -31,8 +31,7 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public Account getAccount(Long id) {
         Account account = common.loadAccountById(id);
-        common.validateAccount(account);
-        return account;
+        return common.validateAccount(account);
     }
 
     /**
@@ -45,14 +44,15 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public Account findAccountByEmail(String email) {
-        return common.loadAccountByEmail(email);
+        Account account = common.loadAccountByEmail(email);
+        return common.validateAccount(account);
     }
 
     @Override
     public AccountDetails myAccount(SecurityUser securityUser) {
         Account account = common.loadAccountByEmail(securityUser.getUsername());
-        common.validateAccount(account);
-        return accountMapper.toDto(account);
+        var validAccount = common.validateAccount(account);
+        return accountMapper.toDto(validAccount);
     }
 
     /**

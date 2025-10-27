@@ -1,24 +1,26 @@
 package com.finedine.riderservice.service;
 
 import com.finedine.riderservice.dto.*;
-import com.finedine.riderservice.entity.Availability;
-import com.finedine.riderservice.entity.DeliveryStatus;
+import com.finedine.riderservice.entity.Delivery;
+import com.finedine.riderservice.enums.Availability;
+import com.finedine.riderservice.enums.DeliveryStatus;
 import com.finedine.riderservice.entity.Rider;
-import com.finedine.riderservice.entity.Status;
+import com.finedine.riderservice.enums.Status;
 import com.finedine.riderservice.exception.NotFoundException;
 import com.finedine.riderservice.exception.UnauthorizedException;
+import com.finedine.riderservice.repository.DeliveryRepository;
 import com.finedine.riderservice.repository.RiderRepository;
 import com.finedine.riderservice.security.SecurityUser;
 import com.finedine.riderservice.util.RiderMapper;
 import io.awspring.cloud.sqs.annotation.SqsListener;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpMethod;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.List;
+import java.util.*;
 
 import static com.finedine.riderservice.util.CustomMessages.*;
 
@@ -27,6 +29,7 @@ import static com.finedine.riderservice.util.CustomMessages.*;
 @Slf4j
 @RequiredArgsConstructor
 public class RiderServiceImpl implements RiderService {
+    private final DeliveryRepository deliveryRepository;
 
     private final RiderRepository riderRepository;
     private final RiderMapper riderMapper;
@@ -37,12 +40,26 @@ public class RiderServiceImpl implements RiderService {
      */
     @SqsListener(value = "fds-rider-registration-queue.fifo")
     @Override
-    public void createRider(RiderRegistrationQueue data) {
+    public Rider createRider(RiderRegistrationQueue data) {
 
         Rider rider = riderMapper.toRider(data);
         rider.setStatus(Status.ONLINE);
 
-        riderRepository.save(rider);
+        return riderRepository.save(rider);
+    }
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @SqsListener(value = "fds-delivery-request-queue.fifo")
+    @Override
+    public Delivery createDelivery(DeliveryRequestDTO request) {
+
+        Delivery delivery = riderMapper.toDelivery(request);
+        delivery.setStatus(DeliveryStatus.PENDING);
+
+        return deliveryRepository.save(delivery);
     }
 
     /**
@@ -89,85 +106,220 @@ public class RiderServiceImpl implements RiderService {
      * {@inheritDoc}
      */
     @Override
-    public List<OrderRequest> getAvailableDeliveryRequests(SecurityUser securityUser) {
-        Rider rider = findRiderIfExists(securityUser.externalId());
-        if (rider.getStatus() != Status.ONLINE) {
-            throw new UnauthorizedException("Rider must be ONLINE to view delivery requests");
-        }
-
-        // Call Order Service to fetch available order requests for rider
-        return restTemplate.exchange(
-                "http://order-service/api/v1/orders/available",
-                HttpMethod.GET,
-                null,
-                new ParameterizedTypeReference<List<OrderRequest>>() {}
-        ).getBody();
+    public Page<RiderResponse> getAvailableRiders(Pageable pageable) {
+        var results = riderRepository.findOnlineAndAvailableRiders(pageable);
+        return results.map(riderMapper::toRiderResponse);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public GenericMessageResponse acceptDelivery(Long orderId, SecurityUser securityUser) {
+    public Page<Delivery> getMyDeliveryRequests(SecurityUser securityUser, Pageable pageable) {
         Rider rider = findRiderIfExists(securityUser.externalId());
-        if (rider.getStatus() != Status.ONLINE || rider.getAvailability() != Availability.AVAILABLE) {
-            throw new UnauthorizedException("Rider must be ONLINE and AVAILABLE");
-        }
+
+        checkOnline(rider.getStatus());
+        checkAvailable(rider.getAvailability());
+
+        return deliveryRepository.findByRiderIdAndStatus(rider.getId(), pageable);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Page<Delivery> getAllAvailableDeliveries(Pageable pageable) {
+        return deliveryRepository.findByStatus(DeliveryStatus.PENDING, pageable);
+    }
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public GenericMessageResponse assignDeliveryToRider(Long deliveryId) {
+
+        Delivery deliveryRequest = findDeliveryIfExists(deliveryId);
+
+        List<Rider> availableRiders = riderRepository.findByAvailable();
+
+        Rider bestRider = selectBestRider(availableRiders, deliveryRequest.getRestaurantLat(), deliveryRequest.getRestaurantLon());
+
+        if (bestRider == null) throw new NotFoundException(NO_AVAILABLE_RIDERS);
+
+        deliveryRequest.setRiderId(bestRider.getId());
+        deliveryRequest.setStatus(DeliveryStatus.REQUESTED);
+
+        deliveryRepository.save(deliveryRequest);
+
+        log.info("Requested order request {} to rider {}", deliveryRequest.getOrderId(), bestRider.getId());
+
+        return new GenericMessageResponse("Delivery assigned to rider " + bestRider.getId() + " and awaiting acceptance");
+    }
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public GenericMessageResponse acceptDelivery(Long deliveryId,  SecurityUser securityUser) {
+        Delivery delivery = findDeliveryIfExists(deliveryId);
+
+        Rider rider = riderRepository.findById(delivery.getRiderId())
+                .orElseThrow(() -> new NotFoundException(RIDER_NOT_FOUND));
+
+        validateRider(securityUser, rider);
+
+        delivery.setStatus(DeliveryStatus.ACCEPTED);
+
+        checkOnline(rider.getStatus());
+        checkAvailable(rider.getAvailability());
+
         rider.setAvailability(Availability.BUSY);
+
+        deliveryRepository.save(delivery);
         riderRepository.save(rider);
 
-        // Call Order Service to update order with assigned_rider_id and status
-        restTemplate.postForObject(
-                "http://order-service/api/v1/orders/" + orderId + "/assign",
-                new OrderAssignmentDTO(orderId, rider.getId(), "DISPATCHED"),
-                Void.class
-        );
-        return new GenericMessageResponse("Delivery request accepted");
+        return new GenericMessageResponse(DELIVERY_ACCEPTED);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public String updateLocation(SecurityUser securityUser, String location) {
-        Rider rider = findRiderIfExists(securityUser.externalId());
-        rider.setCurrentLocation(location);
-        riderRepository.save(rider);
-        return location;
+    public GenericMessageResponse declineDelivery(Long deliveryId, SecurityUser securityUser){
+        Delivery delivery = findDeliveryIfExists(deliveryId);
+
+        Rider rider = riderRepository.findById(delivery.getRiderId())
+                .orElseThrow(() -> new NotFoundException(RIDER_NOT_FOUND));
+
+        validateRider(securityUser, rider);
+
+        delivery.setRiderId(null);
+        delivery.setStatus(DeliveryStatus.PENDING);
+
+        deliveryRepository.save(delivery);
+
+        return new GenericMessageResponse(REQUEST_DECLINED);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public GenericMessageResponse updateDeliveryStatus(Long orderId, DeliveryStatus status, SecurityUser securityUser) {
+    public GenericMessageResponse updateRiderLocation(SecurityUser securityUser, double lat, double lon) {
         Rider rider = findRiderIfExists(securityUser.externalId());
+
+        rider.setLatitude(lat);
+        rider.setLongitude(lon);
+
+        riderRepository.save(rider);
+
+        List<Delivery> active = deliveryRepository.findByRiderIdAndStatusNot(rider.getId(), DeliveryStatus.COMPLETED);
+
+        log.info("Rider current location {}, {}", rider.getLongitude(),rider.getLatitude());
+
+        return new GenericMessageResponse("Delivery location updated");
+    }
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public GenericMessageResponse updateDeliveryStatus(Long deliveryId, DeliveryStatus status, SecurityUser securityUser) {
+        Delivery delivery = findDeliveryIfExists(deliveryId);
+        Rider rider = findRiderIfExists(securityUser.externalId());
+
+        checkAssignedRider(rider.getId(), delivery.getRiderId());
+
         if (rider.getAvailability() != Availability.BUSY) {
-            throw new UnauthorizedException("Rider must be BUSY to update delivery status");
+            throw new UnauthorizedException(RIDER_MUST_BE_BUSY);
         }
 
-        // Call Order Service to update order status
-        restTemplate.postForObject(
-                "http://order-service/api/v1/orders/" + orderId + "/status",
-                new OrderStatusDTO(orderId, status),
-                Void.class
-        );
+        delivery.setStatus(status);
 
-        if (status == DeliveryStatus.DELIVERED || status == DeliveryStatus.CANCELLED) {
+        if (delivery.getStatus() == DeliveryStatus.DELIVERED || delivery.getStatus() == DeliveryStatus.COMPLETED
+                || delivery.getStatus() == DeliveryStatus.CANCELLED) {
             rider.setAvailability(Availability.AVAILABLE);
             riderRepository.save(rider);
         }
+
         return new GenericMessageResponse("Delivery status updated to " + status.toString());
     }
+
 
     private Rider findRiderIfExists(String externalId) {
         return riderRepository.findByExternalId(externalId)
                 .orElseThrow(() -> new NotFoundException(RIDER_NOT_FOUND));
     }
 
+    private Delivery findDeliveryIfExists(Long deliveryId) {
+        return deliveryRepository.findById(deliveryId)
+                .orElseThrow(() -> new NotFoundException(DELIVERY_NOT_FOUND));
+    }
+
     private void validateRider(SecurityUser securityUser, Rider rider) {
         if (securityUser.externalId() != null && !securityUser.externalId().equals(rider.getExternalId())) {
-            throw new UnauthorizedException("Restricted Action");
+            throw new UnauthorizedException(RESTRICTED_ACTION);
         }
+    }
+
+    private void checkAssignedRider(Long deliveryRiderId, Long riderId) {
+        if( deliveryRiderId == null || !deliveryRiderId.equals(riderId)) {
+            throw new UnauthorizedException(RESTRICTED_ACTION);
+        }
+    }
+
+    private void checkOnline(Status status) {
+        if( status != Status.ONLINE) {
+            throw new UnauthorizedException(RIDER_MUST_BE_ONLINE);
+        }
+    }
+
+    private void checkAvailable(Availability availability) {
+        if( availability != Availability.AVAILABLE) {
+            throw new UnauthorizedException(RIDER_MUST_BE_AVAILABLE);
+        }
+    }
+
+    private boolean isRiderAvailable(Rider rider) {
+        return rider.getAvailability() == Availability.AVAILABLE;
+    }
+
+    private Rider selectBestRider(List<Rider> riders, double restLat, double restLon) {
+        return riders.stream()
+                .map(r -> {
+                    double etaMinutes = calculateETA(r.getLatitude(), r.getLongitude(), restLat, restLon);
+                    double score = calculateScore(r.getRating(), etaMinutes);
+                    return new AbstractMap.SimpleEntry<>(r, score);
+                })
+                .max(Comparator.comparingDouble(Map.Entry::getValue))
+                .map(Map.Entry::getKey)
+                .orElse(null);
+    }
+
+    private double calculateScore(double rating, double etaMinutes) {
+        double etaPenalty = etaMinutes / 10.0;
+        return rating - etaPenalty;
+    }
+
+    private double calculateETA(double riderLat, double riderLon, double restLat, double restLon) {
+        double distanceKm = haversine(riderLat, riderLon, restLat, restLon);
+        double avgSpeedKmH = 30.0;
+        return (distanceKm / avgSpeedKmH) * 60.0;
+    }
+
+    private double haversine(double lat1, double lon1, double lat2, double lon2) {
+        final int EARTH_RADIUS_KM = 6371;
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLon = Math.toRadians(lon2 - lon1);
+
+        double a = Math.pow(Math.sin(dLat / 2), 2)
+                + Math.cos(Math.toRadians(lat1))
+                * Math.cos(Math.toRadians(lat2))
+                * Math.pow(Math.sin(dLon / 2), 2);
+
+        return EARTH_RADIUS_KM * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 }

@@ -20,3 +20,15 @@ spring:
           jwk-set-uri: http://localhost:8081/.well-known/jwks.json
 server:
   port: 8087
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health , metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+    metrics:
+      access: read_only

@@ -58,6 +58,18 @@ aws:
       customer-registration-queue: fds-customer-registration-queue.fifo
       endpoint: https://sqs.us-east-1.amazonaws.com/082608135264/fds-customer-registration-queue.fifo
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health , metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+    metrics:
+      access: read_only
+
 rsa:
   public-key: classpath:certs/public.pem
   private-key: classpath:certs/private.pem

@@ -143,6 +143,7 @@ public class RiderServiceImpl implements RiderService {
 
         List<Rider> availableRiders = riderRepository.findByAvailable();
 
+        //todo: change to redis or cache for better performance
         Rider bestRider = selectBestRider(availableRiders, deliveryRequest.getRestaurantLat(), deliveryRequest.getRestaurantLon());
 
         if (bestRider == null) throw new NotFoundException(NO_AVAILABLE_RIDERS);

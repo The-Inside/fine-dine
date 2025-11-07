@@ -50,10 +50,10 @@ aws:
       customer-registration-queue: fds-customer-registration-queue.fifo
       endpoint: https://sqs.us-east-1.amazonaws.com/082608135264/fds-customer-registration-queue.fifo
 
-rsa:
-  public-key: classpath:certs/public.pem
-  private-key: classpath:certs/private.pem
-  key-rotation-interval: 604800
+#rsa:
+#  public-key: classpath:certs/public.pem
+#  private-key: classpath:certs/private.pem
+#  key-rotation-interval: 604800
 
   jpa:
     properties:

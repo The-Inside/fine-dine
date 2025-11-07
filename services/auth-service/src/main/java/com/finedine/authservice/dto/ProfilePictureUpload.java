@@ -1,6 +1,6 @@
 package com.finedine.authservice.dto;
 
-import com.finedine.authservice.util.contraints.ImageFiles;
+import com.finedine.common.validators.ImageFiles;
 import org.springframework.web.multipart.MultipartFile;
 
 import static com.finedine.authservice.CustomMessages.PHOTO_MUST_BE_VALID;

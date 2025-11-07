@@ -1,4 +1,4 @@
-package com.finedine.authservice.util.contraints;
+package com.finedine.common.validators;
 
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;

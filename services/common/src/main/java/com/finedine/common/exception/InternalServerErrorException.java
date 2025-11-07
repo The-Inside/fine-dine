@@ -1,5 +1,4 @@
-package com.finedine.authservice.exception;
-
+package com.finedine.common.exception;
 public class InternalServerErrorException extends RuntimeException {
     public InternalServerErrorException(String message) {
         super(message);

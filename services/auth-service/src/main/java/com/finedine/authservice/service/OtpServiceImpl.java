@@ -3,7 +3,7 @@ package com.finedine.authservice.service;
 import com.finedine.authservice.dto.OtpEmailTemplate;
 import com.finedine.authservice.entity.Otp;
 import com.finedine.authservice.entity.OtpType;
-import com.finedine.authservice.exception.VerificationFailedException;
+import com.finedine.common.exception.VerificationFailedException;
 import com.finedine.authservice.repository.OtpRepository;
 import com.finedine.authservice.util.OtpMailSender;
 import jakarta.transaction.Transactional;

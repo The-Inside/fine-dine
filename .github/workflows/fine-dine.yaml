@@ -7,7 +7,7 @@ on:
       - dev
     paths:
       - 'services/**'
-      - '.github/workflows/microservices-ci.yaml'
+      - '.github/workflows/fine-dine.yaml'
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
@@ -32,12 +32,15 @@ jobs:
       dispatch-service: ${{ steps.changes.outputs.dispatch-service }}
       discovery-service: ${{ steps.changes.outputs.discovery-service }}
       apigateway: ${{ steps.changes.outputs.apigateway }}
+      common: ${{ steps.changes.outputs.common }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v2
         id: changes
         with:
           filters: |
+            common:
+              - 'services/common/**'
             auth-service:
               - 'services/auth-service/**'
             customer-service:
@@ -57,10 +60,37 @@ jobs:
             apigateway:
               - 'services/apigateway/**'
 
+  # Build common module - all services depend on this
+  build-common:
+    name: Build Common Module
+    needs: detect-changes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: 21
+          distribution: 'zulu'
+
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Build and install common module
+        run: mvn clean install -DskipTests
+        working-directory: services/common
+
   # Auth Service
   test-auth-service:
     name: Test Auth Service
-    needs: detect-changes
+    needs: [detect-changes, build-common]
     if: needs.detect-changes.outputs.auth-service == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -123,7 +153,7 @@ jobs:
   # Customer Service
   test-customer-service:
     name: Test Customer Service
-    needs: detect-changes
+    needs: [detect-changes, build-common]
     if: needs.detect-changes.outputs.customer-service == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -186,7 +216,7 @@ jobs:
   # Rider Service
   test-rider-service:
     name: Test Rider Service
-    needs: detect-changes
+    needs: [detect-changes, build-common]
     if: needs.detect-changes.outputs.rider-service == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -249,7 +279,7 @@ jobs:
   # Restaurant Service
   test-restaurant-service:
     name: Test Restaurant Service
-    needs: detect-changes
+    needs: [detect-changes, build-common]
     if: needs.detect-changes.outputs.restaurant-service == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -312,7 +342,7 @@ jobs:
   # Order Service
   test-order-service:
     name: Test Order Service
-    needs: detect-changes
+    needs: [detect-changes, build-common]
     if: needs.detect-changes.outputs.order-service == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -375,7 +405,7 @@ jobs:
   # Payment Service
   test-payment-service:
     name: Test Payment Service
-    needs: detect-changes
+    needs: [detect-changes, build-common]
     if: needs.detect-changes.outputs.payment-service == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -438,7 +468,7 @@ jobs:
   # Dispatch Service
   test-dispatch-service:
     name: Test Dispatch Service
-    needs: detect-changes
+    needs: [detect-changes, build-common]
     if: needs.detect-changes.outputs.dispatch-service == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -501,7 +531,7 @@ jobs:
   # Discovery Service
   test-discovery-service:
     name: Test Discovery Service
-    needs: detect-changes
+    needs: [detect-changes, build-common]
     if: needs.detect-changes.outputs.discovery-service == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -564,7 +594,7 @@ jobs:
   # API Gateway
   test-apigateway:
     name: Test API Gateway
-    needs: detect-changes
+    needs: [detect-changes, build-common]
     if: needs.detect-changes.outputs.apigateway == 'true'
     runs-on: ubuntu-latest
     steps:

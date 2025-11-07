@@ -5,8 +5,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import lombok.extern.slf4j.Slf4j;
 
 @Configuration
+@Slf4j
 @RequiredArgsConstructor
 public class WebConfig implements WebMvcConfigurer {
 
@@ -16,6 +18,5 @@ public class WebConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(rateLimitInterceptor)
                 .addPathPatterns("/api/**");
-        System.out.println("RateLimitInterceptor registered!");
-    }
+        log.info("RateLimitInterceptor registered!")    }
 }

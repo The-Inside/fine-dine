@@ -60,9 +60,9 @@ jobs:
             apigateway:
               - 'services/apigateway/**'
 
-  # Build common module - all services depend on this
+  # Build parent POM and common module - all services depend on this
   build-common:
-    name: Build Common Module
+    name: Build Parent POM and Common Module
     needs: detect-changes
     runs-on: ubuntu-latest
     steps:
@@ -82,6 +82,10 @@ jobs:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
+
+      - name: Install parent POM
+        run: mvn clean install -N
+        working-directory: services
 
       - name: Build and install common module
         run: mvn clean install -DskipTests

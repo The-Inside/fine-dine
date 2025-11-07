@@ -7,7 +7,7 @@ on:
       - dev
     paths:
       - 'services/**'
-      - '.github/workflows/fine-dine.yaml'
+      - '.github/workflows/microservices-ci.yaml'
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
@@ -115,6 +115,12 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
 
+      - name: Install parent POM and common module
+        run: |
+          mvn install -N
+          cd common && mvn clean install -DskipTests
+        working-directory: services
+
       - name: Run tests
         run: mvn test
         working-directory: services/auth-service
@@ -148,6 +154,12 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
 
+      - name: Install parent POM and common module
+        run: |
+          mvn install -N
+          cd common && mvn clean install -DskipTests
+        working-directory: services
+
       - name: Build and analyze
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -177,6 +189,12 @@ jobs:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
+
+      - name: Install parent POM and common module
+        run: |
+          mvn install -N
+          cd common && mvn clean install -DskipTests
+        working-directory: services
 
       - name: Run tests
         run: mvn test
@@ -211,6 +229,12 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
 
+      - name: Install parent POM and common module
+        run: |
+          mvn install -N
+          cd common && mvn clean install -DskipTests
+        working-directory: services
+
       - name: Build and analyze
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -240,6 +264,12 @@ jobs:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
+
+      - name: Install parent POM and common module
+        run: |
+          mvn install -N
+          cd common && mvn clean install -DskipTests
+        working-directory: services
 
       - name: Run tests
         run: mvn test
@@ -274,6 +304,12 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
 
+      - name: Install parent POM and common module
+        run: |
+          mvn install -N
+          cd common && mvn clean install -DskipTests
+        working-directory: services
+
       - name: Build and analyze
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -303,6 +339,12 @@ jobs:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
+
+      - name: Install parent POM and common module
+        run: |
+          mvn install -N
+          cd common && mvn clean install -DskipTests
+        working-directory: services
 
       - name: Run tests
         run: mvn test
@@ -337,6 +379,12 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
 
+      - name: Install parent POM and common module
+        run: |
+          mvn install -N
+          cd common && mvn clean install -DskipTests
+        working-directory: services
+
       - name: Build and analyze
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -366,6 +414,12 @@ jobs:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
+
+      - name: Install parent POM and common module
+        run: |
+          mvn install -N
+          cd common && mvn clean install -DskipTests
+        working-directory: services
 
       - name: Run tests
         run: mvn test
@@ -400,6 +454,12 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
 
+      - name: Install parent POM and common module
+        run: |
+          mvn install -N
+          cd common && mvn clean install -DskipTests
+        working-directory: services
+
       - name: Build and analyze
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -429,6 +489,12 @@ jobs:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
+
+      - name: Install parent POM and common module
+        run: |
+          mvn install -N
+          cd common && mvn clean install -DskipTests
+        working-directory: services
 
       - name: Run tests
         run: mvn test
@@ -463,11 +529,17 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
 
+      - name: Install parent POM and common module
+        run: |
+          mvn install -N
+          cd common && mvn clean install -DskipTests
+        working-directory: services
+
       - name: Build and analyze
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=fine-dine_payment-service
-        working-directory: services/payment-service
+        working-directory: services/payment-servicepayment-service
 
   # Dispatch Service
   test-dispatch-service:

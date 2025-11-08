@@ -2,18 +2,23 @@ spring:
   application:
     name: auth-service
 
-
   datasource:
     url: jdbc:h2:mem:testdb
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
 
+  # Disable Redis auto-configuration for tests
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
 
   security:
     oauth2:
       authorization-server:
         endpoint:
           jwk-set-uri: "http://localhost:8081/.well-known/jwks.json"
+
   mail:
     host: smtp.gmail.com
     port: 465
@@ -29,9 +34,24 @@ spring:
             port: 465
             class: javax.net.ssl.SSLSocketFactory
             fallback: false
+
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+        ddl-auto: create-drop
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    database-platform: org.hibernate.dialect.H2Dialect
+
 cors:
   allowed-origins:
     http://localhost:3000
+
+# Disable rate limiting for tests
+rate-limit:
+  enabled: false
 
 aws:
   s3:
@@ -41,33 +61,18 @@ aws:
     restaurant:
       restaurant-registration-queue: fds-restaurant-registration-queue.fifo
       endpoint: https://sqs.us-east-1.amazonaws.com/082608135264/fds-restaurant-registration-queue.fifo
-
     rider:
       rider-registration-queue: fds-rider-registration-queue.fifo
       endpoint: https://sqs.us-east-1.amazonaws.com/082608135264/fds-rider-registration-queue.fifo
-
     customer:
       customer-registration-queue: fds-customer-registration-queue.fifo
       endpoint: https://sqs.us-east-1.amazonaws.com/082608135264/fds-customer-registration-queue.fifo
 
-rsa:
-  public-key: classpath:certs/public.pem
-  private-key: classpath:certs/private.pem
-  key-rotation-interval: 604800
+# Don't configure RSA keys for tests - let KeyManager generate them
+# rsa:
+#   public-key: classpath:certs/public.pem
+#   private-key: classpath:certs/private.pem
+#   key-rotation-interval: 604800
 
-  jpa:
-    properties:
-      hibernate:
-#        dialect: org.hibernate.dialect.H2
-        format_sql: true
-        ddl-auto: create-drop
-
-    hibernate:
-      ddl-auto: none
-
-    show-sql: true
-    database-platform: org.hibernate.dialect.H2Dialect
-
-
-server :
+server:
   port: 8090

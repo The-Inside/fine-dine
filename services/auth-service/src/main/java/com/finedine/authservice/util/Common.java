@@ -1,9 +1,9 @@
 package com.finedine.authservice.util;
 
 import com.finedine.authservice.entity.Account;
-import com.finedine.authservice.exception.NotFoundException;
-import com.finedine.authservice.exception.PhoneNumberValidationException;
-import com.finedine.authservice.exception.UnverifiedAccountException;
+import com.finedine.common.exception.NotFoundException;
+import com.finedine.common.exception.PhoneNumberValidationException;
+import com.finedine.common.exception.UnverifiedAccountException;
 import com.finedine.authservice.repository.AccountRepository;
 import com.google.i18n.phonenumbers.NumberParseException;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;

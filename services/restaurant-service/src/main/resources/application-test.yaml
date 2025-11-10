@@ -28,5 +28,8 @@ spring:
           issuer-uri: http://localhost:8081
           jwk-set-uri: http://localhost:8081/.well-known/jwks.json
 
+rate-limit:
+  enabled: false
+
 server :
   port: 8085

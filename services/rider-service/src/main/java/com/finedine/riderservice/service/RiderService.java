@@ -116,4 +116,28 @@ public interface RiderService {
      * @return a generic message response indicating success
      */
     GenericMessageResponse updateDeliveryStatus(Long orderId, DeliveryStatus status, SecurityUser securityUser);
+
+    /**
+     * Update rider location via WebSocket and broadcast to customers.
+     *
+     * @param securityUser the security user containing authentication details
+     * @param request the location update data
+     */
+    void updateRiderLocationWebSocket(SecurityUser securityUser, RiderLocationUpdateRequest request);
+
+    /**
+     * Broadcast rider's location to all customers tracking active deliveries.
+     *
+     * @param rider the rider whose location to broadcast
+     */
+    void broadcastLocationToCustomers(Rider rider);
+
+    /**
+     * Validate order for tracking and return tracking information.
+     *
+     * @param orderId the order ID to validate
+     * @param securityUser the customer from authentication
+     * @return tracking validation response with rider and subscription details
+     */
+    TrackingValidationResponse validateOrderForTracking(Long orderId, SecurityUser securityUser);
 }

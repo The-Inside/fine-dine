@@ -29,7 +29,7 @@ public class Delivery {
     private Long restaurantId;
 
     @Column(nullable = false, updatable = false)
-    private Long customerId;
+    private String customerId;
 
     @Column(nullable = false, updatable = false)
     private Long orderId;

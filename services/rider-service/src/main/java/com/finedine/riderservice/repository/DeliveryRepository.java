@@ -21,4 +21,6 @@ public interface DeliveryRepository extends JpaRepository<Delivery, Long> {
 
     @Query("SELECT d FROM Delivery d WHERE d.status = :status")
     Page<Delivery> findByStatus(@Param("status") DeliveryStatus status, Pageable pageable);
+
+    List<Delivery> findByRiderIdAndStatusIn(Long riderId, List<DeliveryStatus> statuses);
 }

@@ -6,6 +6,7 @@ import com.finedine.riderservice.enums.Availability;
 import com.finedine.riderservice.enums.DeliveryStatus;
 import com.finedine.riderservice.entity.Rider;
 import com.finedine.riderservice.enums.Status;
+import com.finedine.riderservice.enums.VehicleType;
 import com.finedine.riderservice.exception.NotFoundException;
 import com.finedine.riderservice.exception.UnauthorizedException;
 import com.finedine.riderservice.repository.DeliveryRepository;
@@ -17,11 +18,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 
+import static com.finedine.riderservice.enums.VehicleType.MOTORCYCLE;
 import static com.finedine.riderservice.util.CustomMessages.*;
 
 
@@ -30,10 +35,11 @@ import static com.finedine.riderservice.util.CustomMessages.*;
 @RequiredArgsConstructor
 public class RiderServiceImpl implements RiderService {
     private final DeliveryRepository deliveryRepository;
-
     private final RiderRepository riderRepository;
     private final RiderMapper riderMapper;
     private final RestTemplate restTemplate;
+    private final LocationTrackingService locationTrackingService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     /**
      * {@inheritDoc}
@@ -98,6 +104,27 @@ public class RiderServiceImpl implements RiderService {
 
         rider.setStatus(Status.OFFLINE);
         riderRepository.save(rider);
+
+        // Send tracking stopped notifications for all active deliveries
+        List<Delivery> activeDeliveries = locationTrackingService.getActiveDeliveriesForRider(rider.getId());
+        for (Delivery delivery : activeDeliveries) {
+            try {
+                Map<String, String> notification = Map.of(
+                    "status", "TRACKING_STOPPED",
+                    "reason", "RIDER_OFFLINE",
+                    "message", TRACKING_STOPPED
+                );
+
+                String topic = "/topic/delivery/" + delivery.getId() + "/location";
+                messagingTemplate.convertAndSend(topic, notification);
+
+                log.info("Sent tracking stopped notification for delivery {} (rider went offline)",
+                    delivery.getId());
+            } catch (Exception e) {
+                log.error("Failed to send tracking stopped notification for delivery {}: {}",
+                    delivery.getId(), e.getMessage());
+            }
+        }
 
         return new GenericMessageResponse(RIDER_OFFLINE);
     }
@@ -216,11 +243,15 @@ public class RiderServiceImpl implements RiderService {
 
         riderRepository.save(rider);
 
-        List<Delivery> active = deliveryRepository.findByRiderIdAndStatusNot(rider.getId(), DeliveryStatus.COMPLETED);
+        // Update location in Redis
+        locationTrackingService.addRiderLocation(rider.getId(), lat, lon);
 
-        log.info("Rider current location {}, {}", rider.getLongitude(),rider.getLatitude());
+        // Broadcast to customers tracking this rider
+        broadcastLocationToCustomers(rider);
 
-        return new GenericMessageResponse("Delivery location updated");
+        log.info("Rider {} location updated: {}, {}", rider.getId(), lat, lon);
+
+        return new GenericMessageResponse(LOCATION_UPDATED);
     }
 
 
@@ -238,15 +269,52 @@ public class RiderServiceImpl implements RiderService {
             throw new UnauthorizedException(RIDER_MUST_BE_BUSY);
         }
 
+        DeliveryStatus oldStatus = delivery.getStatus();
         delivery.setStatus(status);
+        deliveryRepository.save(delivery);
 
-        if (delivery.getStatus() == DeliveryStatus.DELIVERED || delivery.getStatus() == DeliveryStatus.COMPLETED
-                || delivery.getStatus() == DeliveryStatus.CANCELLED) {
+        // Handle tracking stop scenarios
+        if (status == DeliveryStatus.DELIVERED || status == DeliveryStatus.COMPLETED
+                || status == DeliveryStatus.CANCELLED) {
+
             rider.setAvailability(Availability.AVAILABLE);
             riderRepository.save(rider);
+
+            // Send tracking stop notification to customer
+            sendTrackingStoppedNotification(delivery, status);
         }
 
-        return new GenericMessageResponse("Delivery status updated to " + status.toString());
+        return new GenericMessageResponse("Delivery status updated to " + status);
+    }
+
+    /**
+     * Send tracking stopped notification to customer
+     */
+    private void sendTrackingStoppedNotification(Delivery delivery, DeliveryStatus reason) {
+        try {
+            String reasonText;
+            if (reason == DeliveryStatus.DELIVERED) {
+                reasonText = "DELIVERY_COMPLETED";
+            } else if (reason == DeliveryStatus.CANCELLED) {
+                reasonText = "DELIVERY_CANCELLED";
+            } else {
+                reasonText = "DELIVERY_COMPLETED";
+            }
+
+            Map<String, String> notification = Map.of(
+                "status", "TRACKING_STOPPED",
+                "reason", reasonText,
+                "message", TRACKING_STOPPED
+            );
+
+            String topic = "/topic/delivery/" + delivery.getId() + "/location";
+            messagingTemplate.convertAndSend(topic, notification);
+
+            log.info("Sent tracking stopped notification for delivery {} (reason: {})",
+                delivery.getId(), reasonText);
+        } catch (Exception e) {
+            log.error("Failed to send tracking stopped notification: {}", e.getMessage());
+        }
     }
 
 
@@ -322,5 +390,156 @@ public class RiderServiceImpl implements RiderService {
                 * Math.pow(Math.sin(dLon / 2), 2);
 
         return EARTH_RADIUS_KM * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void updateRiderLocationWebSocket(SecurityUser securityUser, RiderLocationUpdateRequest request) {
+        Rider rider = findRiderIfExists(securityUser.externalId());
+
+        Instant now = Instant.now();
+        Instant updateTime = request.timestamp();
+
+        if (Duration.between(updateTime, now).toMinutes() > 5) {
+            log.warn("Location request too stale for rider {}: {} minutes old",
+                    rider.getId(), Duration.between(updateTime, now).toMinutes());
+            throw new IllegalArgumentException(LOCATION_UPDATE_TOO_STALE);
+        }
+
+//        rider.setLatitude(request.latitude());
+//        rider.setLongitude(request.longitude());
+//        riderRepository.save(rider);
+
+        locationTrackingService.addRiderLocation(rider.getId(), request.latitude(), request.longitude());
+
+        broadcastLocationToCustomers(rider);
+
+        log.info("Rider {} location updated via WebSocket: ({}, {})", rider.getId(), request.latitude(), request.longitude());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void broadcastLocationToCustomers(Rider rider) {
+        List<Delivery> activeDeliveries = locationTrackingService.getActiveDeliveriesForRider(rider.getId());
+
+        if (activeDeliveries.isEmpty()) {
+            log.debug("No active deliveries for rider {}, skipping broadcast", rider.getId());
+            return;
+        }
+
+        for (Delivery delivery : activeDeliveries) {
+            try {
+                // Ensure customer location is in Redis
+                locationTrackingService.addCustomerLocation(
+                    delivery.getId(),
+                    delivery.getCustomerLat(),
+                    delivery.getCustomerLon()
+                );
+
+                // Calculate ETA
+                Double etaMinutes = locationTrackingService.calculateETA(rider.getId(), delivery.getId());
+                String etaText = locationTrackingService.formatETA(etaMinutes);
+
+                // Create location response
+                RiderLocationResponse response = new RiderLocationResponse(
+                    rider.getId(),
+                    rider.getLatitude(),
+                    rider.getLongitude(),
+                    System.currentTimeMillis(),
+                    etaMinutes,
+                    etaText
+                );
+
+                // Broadcast to delivery-specific topic
+                String topic = "/topic/delivery/" + delivery.getId() + "/location";
+                messagingTemplate.convertAndSend(topic, response);
+
+                log.debug("Broadcasted location for rider {} to delivery {} (ETA: {})",
+                    rider.getId(), delivery.getId(), etaText);
+
+                // Check geofence alerts
+                if (etaMinutes != null) {
+                    Double distanceKm = locationTrackingService.calculateDistance(rider.getId(), delivery.getId());
+
+                    if (distanceKm != null) {
+                        var alert = locationTrackingService.checkGeofenceAlert(
+                            delivery.getId(),
+                            distanceKm
+                        );
+
+                        if (alert.isPresent()) {
+                            GeofenceAlert geofenceAlert = alert.get();
+                            String alertTopic = "/topic/delivery/" + delivery.getId() + "/alerts";
+                            messagingTemplate.convertAndSend(alertTopic, geofenceAlert);
+
+                            // Mark alert as sent
+                            locationTrackingService.markAlertSent(
+                                delivery.getId(),
+                                geofenceAlert.alertType()
+                            );
+
+                            log.info("Sent geofence alert {} for delivery {}",
+                                geofenceAlert.alertType(), delivery.getId());
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.error("Failed to broadcast location for delivery {}: {}",
+                    delivery.getId(), e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public TrackingValidationResponse validateOrderForTracking(Long orderId, SecurityUser securityUser) {
+        log.info("Customer validating order {} for tracking", orderId);
+
+        Delivery delivery = findDeliveryByOrderIdIfExists(orderId);
+
+        if (!delivery.getCustomerId().equals(securityUser.externalId())) {
+            throw new UnauthorizedException(ORDER_DOES_NOT_BELONG_TO_YOU);
+        }
+
+        if (!isDeliveryTrackable(delivery)) {
+            throw new IllegalArgumentException(
+                DELIVERY_NOT_TRACKABLE + ". Current status: " + delivery.getStatus()
+            );
+        }
+
+        Rider rider = riderRepository.findById(delivery.getRiderId())
+            .orElseThrow(() -> new NotFoundException(RIDER_NOT_FOUND));
+
+        if (rider.getStatus() != Status.ONLINE) {
+            throw new IllegalStateException(RIDER_IS_OFFLINE);
+        }
+
+        String riderName = rider.getFirstName() + " " + rider.getLastName();
+        String subscriptionTopic = "/topic/delivery/" + delivery.getId() + "/location";
+
+        log.info("Order {} validated for tracking. Delivery ID: {}, Rider ID: {}", orderId, delivery.getId(), rider.getId());
+
+        return new TrackingValidationResponse(
+            rider.getId(),
+            delivery.getId(),
+            riderName,
+            rider.getVehicleType() != null ? rider.getVehicleType().toString() : VehicleType.MOTORCYCLE.toString(),
+            subscriptionTopic
+        );
+    }
+
+    private boolean isDeliveryTrackable(Delivery delivery) {
+        return delivery.getStatus() == DeliveryStatus.DISPATCHED || delivery.getStatus() == DeliveryStatus.DELIVERED;
+    }
+
+    private Delivery findDeliveryByOrderIdIfExists(Long orderId) {
+        return deliveryRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new NotFoundException(DELIVERY_NOT_FOUND));
     }
 }

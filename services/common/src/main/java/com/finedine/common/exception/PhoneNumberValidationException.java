@@ -1,4 +1,4 @@
-package com.finedine.authservice.exception;
+package com.finedine.common.exception;
 
 public class PhoneNumberValidationException extends IllegalArgumentException{
     public PhoneNumberValidationException(String message) {

@@ -1,8 +1,8 @@
-package com.finedine.authservice.util.contraints;
+package com.finedine.common.validators;
 
 import java.util.regex.Pattern;
 
-import static com.finedine.authservice.CustomMessages.*;
+import static com.finedine.common.CustomMessages.*;
 
 /**
  * Utility class for validating email, password, and phone number formats.

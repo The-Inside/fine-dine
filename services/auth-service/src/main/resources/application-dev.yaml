@@ -34,6 +34,31 @@ spring:
         endpoint:
           jwk-set-uri: "http://localhost:8081/.well-known/jwks.json"
 
+  data:
+    redis:
+      port: 6379
+      host: localhost
+      timeout: 2000ms
+
+rate-limit:
+  enabled: true
+  endpoints:
+    login:
+      ip-limit: 5
+      email-limit: 5
+      duration: 1
+      unit: MINUTES
+    resend-otp:
+      ip-limit: 3
+      email-limit: 3
+      duration: 1
+      unit: MINUTES
+    signup:
+      ip-limit: 3
+      email-limit: 3
+      duration: 1
+      unit: HOURS
+
 server:
   port: 8081
 
@@ -62,12 +87,14 @@ management:
   endpoints:
     web:
       exposure:
-        include: health , metrics
+        include: health,metrics,prometheus
       base-path: /actuator
   endpoint:
     health:
       show-details: always
     metrics:
+      access: read_only
+    prometheus:
       access: read_only
 
 rsa:

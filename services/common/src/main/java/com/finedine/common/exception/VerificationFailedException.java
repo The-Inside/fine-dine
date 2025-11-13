@@ -1,4 +1,4 @@
-package com.finedine.authservice.exception;
+package com.finedine.common.exception;
 
 public class VerificationFailedException extends RuntimeException{
     public VerificationFailedException(String message) {

@@ -267,33 +267,13 @@ class RiderServiceImplTest {
         Rider rider = newRider;
         rider.setStatus(Status.ONLINE);
 
-        Delivery delivery1 = Delivery.builder()
-                .orderId(1L)
-                .restaurantId(1L)
-                .riderId(1L)
-                .customerId(1L)
-                .build();
-
-        Delivery delivery2 = Delivery.builder()
-                .orderId(2L)
-                .restaurantId(2L)
-                .riderId(2L)
-                .customerId(2L)
-                .build();
-
-        List<Delivery> deliveryList = List.of(delivery1, delivery2);
-        Page<Delivery> deliveries = new PageImpl<>(deliveryList, pageable, deliveryList.size());
-
         when(riderRepository.findByExternalId(securityUser.externalId())).thenReturn(Optional.of(rider));
-        when(deliveryRepository.findByRiderIdAndStatus(rider.getId(), pageable)).thenReturn(deliveries);
-
-//        Page<Delivery> result = riderService.getMyDeliveryRequests(securityUser,pageable);
 
         assertThrows(UnauthorizedException.class, () -> {
             riderService.getMyDeliveryRequests(securityUser,pageable);
         });
 
-//        assertThat(result).isNull();
+        verify(deliveryRepository, never()).findByRiderIdAndStatus(any(), any());
     }
 
     private RiderRegistrationQueue createRiderObject = RiderRegistrationQueue.builder()

@@ -1,6 +1,6 @@
 package com.finedine.authservice.dto.signup;
 
-import com.finedine.authservice.util.contraints.ImageFiles;
+import com.finedine.common.validators.ImageFiles;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Builder;
 import org.springframework.web.multipart.MultipartFile;

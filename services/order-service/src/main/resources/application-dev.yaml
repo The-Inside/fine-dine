@@ -14,3 +14,17 @@ spring:
         database-platform: ${SPRING_JPA_PROPERTIES_HIBERNATE_DATABASE_PLATFORM}
 server:
   port: 8082
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+    metrics:
+      access: read_only
+    prometheus:
+      access: read_only

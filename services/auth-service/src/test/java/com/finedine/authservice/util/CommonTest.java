@@ -2,8 +2,8 @@ package com.finedine.authservice.util;
 
 import com.finedine.authservice.entity.Account;
 import com.finedine.authservice.enums.AccountStatus;
-import com.finedine.authservice.exception.NotFoundException;
-import com.finedine.authservice.exception.UnverifiedAccountException;
+import com.finedine.common.exception.NotFoundException;
+import com.finedine.common.exception.UnverifiedAccountException;
 import com.finedine.authservice.repository.AccountRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

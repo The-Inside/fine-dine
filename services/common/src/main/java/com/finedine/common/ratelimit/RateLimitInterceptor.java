@@ -18,6 +18,7 @@ import java.util.List;
 public class RateLimitInterceptor implements HandlerInterceptor {
 
     private final StringRedisTemplate redisTemplate;
+    private final RateLimitMetrics metrics;
 
     // Lua script for atomic increment and expire
     private static final String RATE_LIMIT_SCRIPT =
@@ -27,8 +28,13 @@ public class RateLimitInterceptor implements HandlerInterceptor {
                     "end " +
                     "return current";
 
-    public RateLimitInterceptor(StringRedisTemplate redisTemplate) {
+    // Default global rate limit: 100 requests per 60 seconds
+    private static final int DEFAULT_LIMIT = 100;
+    private static final long DEFAULT_WINDOW_SECONDS = 60L;
+
+    public RateLimitInterceptor(StringRedisTemplate redisTemplate, RateLimitMetrics metrics) {
         this.redisTemplate = redisTemplate;
+        this.metrics = metrics;
     }
 
     @Override
@@ -42,26 +48,38 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         HandlerMethod handlerMethod = (HandlerMethod) handler;
         RateLimit rateLimit = handlerMethod.getMethodAnnotation(RateLimit.class);
 
-        if (rateLimit == null) {
-            return true;
+        // Use explicit annotation or apply default global rate limit
+        int limit = DEFAULT_LIMIT;
+        long windowSeconds = DEFAULT_WINDOW_SECONDS;
+
+        if (rateLimit != null) {
+            limit = rateLimit.limit();
+            windowSeconds = rateLimit.windowSeconds();
         }
 
         String clientIp = getClientIp(request);
         String endpoint = request.getRequestURI();
         String key = "rate_limit:" + clientIp + ":" + endpoint;
 
-        // Execute Lua script atomically
-        Long requests = redisTemplate.execute(
-                RedisScript.of(RATE_LIMIT_SCRIPT, Long.class),
-                Collections.singletonList(key),
-                String.valueOf(rateLimit.windowSeconds())
-        );
+        try {
+            // Execute Lua script atomically
+            Long requests = redisTemplate.execute(
+                    RedisScript.of(RATE_LIMIT_SCRIPT, Long.class),
+                    Collections.singletonList(key),
+                    String.valueOf(windowSeconds)
+            );
 
-        if (requests != null && requests > rateLimit.limit()) {
-            log.warn("Rate limit exceeded for IP: {} on endpoint: {}. Request count: {}",
-                    clientIp, endpoint, requests);
-            log.warn("Try again in {} seconds", rateLimit.windowSeconds());
-            throw new RateLimitExceededException("requests limit exceeded, try again later");
+            if (requests != null && requests > limit) {
+                metrics.recordViolation(clientIp, endpoint);
+                log.warn("Rate limit exceeded for IP: {} on endpoint: {}. Limit: {}/{} seconds. Request count: {}",
+                        clientIp, endpoint, limit, windowSeconds, requests);
+                throw new RateLimitExceededException("requests limit exceeded, try again later");
+            }
+        } catch (RateLimitExceededException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Redis rate limiting failed for IP: {} on endpoint: {}. Allowing request to proceed.",
+                    clientIp, endpoint, e);
         }
 
         return true;
@@ -93,8 +111,11 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         if (ip == null || ip.isEmpty()) {
             return false;
         }
-        // Basic validation to prevent header spoofing
-        // This regex validates IPv4 addresses
-        return ip.matches("^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$");
+        try {
+            java.net.InetAddress.getByName(ip);
+            return true;
+        } catch (java.net.UnknownHostException e) {
+            return false;
+        }
     }
 }

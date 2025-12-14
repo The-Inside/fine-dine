@@ -10,4 +10,5 @@ import java.lang.annotation.Target;
 public @interface RateLimit {
     int limit() default 10;
     long windowSeconds() default 60;
+    boolean useGlobalDefault() default false;
 }

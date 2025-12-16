@@ -12,6 +12,12 @@ spring:
     properties:
       hibernate:
         database-platform: ${SPRING_JPA_PROPERTIES_HIBERNATE_DATABASE_PLATFORM}
+  security:
+    oauth2:
+      resource-server:
+        jwt:
+          issuer-uri: http://localhost:8081
+          jwk-set-uri: http://localhost:8081/.well-known/jwks.json
 server:
   port: 8082
 

@@ -18,8 +18,21 @@ spring:
         jwt:
           issuer-uri: http://localhost:8081
           jwk-set-uri: http://localhost:8081/.well-known/jwks.json
+  cloud:
+    refresh:
+      enabled: false
+
+  autoconfigure:
+    exclude:
+      - io.awspring.cloud.autoconfigure.sqs.SqsAutoConfiguration
+      - io.awspring.cloud.autoconfigure.sns.SnsAutoConfiguration
+      - io.awspring.cloud.autoconfigure.s3.S3AutoConfiguration
+
 server:
   port: 8082
+
+restaurant-service:
+  url: http://restaurant-service:8083
 
 management:
   endpoints:

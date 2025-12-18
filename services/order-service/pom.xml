@@ -29,6 +29,8 @@
     <properties>
         <java.version>21</java.version>
         <spring-cloud.version>2025.1.0</spring-cloud.version>
+        <mapstruct.version>1.6.2</mapstruct.version>
+        <lombok.version>1.18.42</lombok.version>
     </properties>
     <dependencies>
         <dependency>
@@ -146,13 +148,14 @@
                 <configuration>
                     <annotationProcessorPaths>
                         <path>
-                            <groupId>org.mapstruct</groupId>
-                            <artifactId>mapstruct-processor</artifactId>
-                            <version>1.6.2</version>
-                        </path>
-                        <path>
                             <groupId>org.projectlombok</groupId>
                             <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                        <path>
+                            <groupId>org.mapstruct</groupId>
+                            <artifactId>mapstruct-processor</artifactId>
+                            <version>${mapstruct.version}</version>
                         </path>
                     </annotationProcessorPaths>
                 </configuration>

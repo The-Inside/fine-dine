@@ -45,7 +45,7 @@ public class AuthController {
 
     @PostMapping(value = "/signup/restaurant", consumes = {"multipart/form-data"})
     @ResponseStatus(HttpStatus.CREATED)
-    @RateLimit(limit = 2, windowSeconds = 7200)
+    @RateLimit(limit = 4, windowSeconds = 180)
     public GenericMessageResponse signUpRestaurant(@RequestBody @ModelAttribute @Valid RestaurantRegistrationRequest request){
         return authService.registerRestaurant(request);
     }

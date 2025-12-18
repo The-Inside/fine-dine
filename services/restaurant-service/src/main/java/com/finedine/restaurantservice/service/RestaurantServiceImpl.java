@@ -10,12 +10,14 @@ import com.finedine.restaurantservice.repository.RestaurantRepository;
 import com.finedine.restaurantservice.security.SecurityUser;
 import com.finedine.restaurantservice.util.RestaurantMapper;
 import io.awspring.cloud.sqs.annotation.SqsListener;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Random;
 
 import static com.finedine.restaurantservice.util.CustomMessages.*;
@@ -34,6 +36,7 @@ public class RestaurantServiceImpl implements RestaurantService{
      {@inheritDoc}
      */
     @SqsListener(value = "fds-restaurant-registration-queue.fifo")
+    @Transactional
     @Override
     public void createRestaurantEntry(RestaurantQueueObject data) {
         String restaurantCode;
@@ -48,7 +51,12 @@ public class RestaurantServiceImpl implements RestaurantService{
 
         restaurant.setRestaurantCode(restaurantCode);
 
-        restaurantRepository.save(restaurant);
+        var savedRestaurant = restaurantRepository.save(restaurant);
+
+        log.info("Restaurant saved successfully with ID: {}, externalId: {}, name: {}",
+                savedRestaurant.getRestaurantId(),
+                savedRestaurant.getExternalId(),
+                savedRestaurant.getRestaurantName());
     }
 
     /**
@@ -84,21 +92,23 @@ public class RestaurantServiceImpl implements RestaurantService{
                 .map(restaurant -> {
                     double distanceKm = calculateDistance(userLat, userLon, restaurant.getLatitude(), restaurant.getLongitude());
                     int travelTimeMinutes = (int) Math.round((distanceKm / AVERAGE_SPEED_KMH) * 60);
-                    return RestaurantResponse.builder()
-                            .restaurantId(restaurant.getRestaurantId())
-                            .externalId(restaurant.getExternalId())
-                            .email(restaurant.getEmail())
-                            .restaurantName(restaurant.getRestaurantName())
-                            .restaurantCode(restaurant.getRestaurantCode())
-                            .phone(restaurant.getPhone())
-                            .logoUrl(restaurant.getLogoUrl())
-                            .address(restaurant.getAddress())
-                            .latitude(restaurant.getLatitude())
-                            .longitude(restaurant.getLongitude())
-                            .cuisine(restaurant.getCuisine())
-                            .description(restaurant.getDescription())
-                            .travelTimeMinutes(travelTimeMinutes)
-                            .build();
+                    return new RestaurantResponse(
+                            restaurant.getRestaurantId(),
+                            restaurant.getExternalId(),
+                            restaurant.getEmail(),
+                            restaurant.getRestaurantName(),
+                            restaurant.getRestaurantCode(),
+                            restaurant.getPhone(),
+                            restaurant.getLogoUrl(),
+                            restaurant.getAddress(),
+                            restaurant.getLatitude(),
+                            restaurant.getLongitude(),
+                            restaurant.getCuisine(),
+                            restaurant.getDescription(),
+                            travelTimeMinutes,
+                            restaurantMapper.isRestaurantOpen(restaurant.getOpenTime(), restaurant.getCloseTime())
+                    );
+
                 });
     }
 
@@ -184,6 +194,26 @@ public class RestaurantServiceImpl implements RestaurantService{
     @Override
     public Page<MenuItemResponse> getRestaurantMenu(Long restaurantId, Pageable pageable) {
         return menuRepository.findByRestaurantId(restaurantId, pageable);
+    }
+
+    /**
+     {@inheritDoc}
+     */
+    @Override
+    public List<MenuIResponse> getMenuItemsByIds(List<Long> ids) {
+        List<MenuItem> response = menuRepository.findByIdIn(ids);
+        log.info("Fetched {} menu items for provided IDs", response);
+
+        return response.stream()
+                .map(menuItem -> new MenuIResponse(
+                        menuItem.getId(),
+                        menuItem.getName(),
+                        menuItem.getDescription(),
+                        menuItem.getPrice(),
+                        menuItem.getCategory(),
+                        menuItem.getIsAvailable(),
+                        menuItem.getRestaurant().getRestaurantId()))
+                .toList();
     }
 
     private Restaurant findByExternalId(SecurityUser securityUser){

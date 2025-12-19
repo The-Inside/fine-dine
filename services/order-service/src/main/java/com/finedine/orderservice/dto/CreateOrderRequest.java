@@ -1,4 +1,8 @@
 package com.finedine.orderservice.dto;
 
-public class CreateOrderRequest {
-}
+import java.util.List;
+
+public record CreateOrderRequest(
+        Long restaurantId,
+        List<OrderItemRequest> orderItems
+) {}

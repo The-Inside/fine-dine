@@ -1,4 +1,4 @@
-package com.finedine.restaurantservice.security;
+package com.finedine.orderservice.security;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,7 +36,6 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/actuator/**").permitAll()
-                        .requestMatchers("/api/v1/restaurants/internal/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
@@ -74,7 +73,7 @@ public class SecurityConfig {
             String email = jwt.getClaim("email");
 
             if (authorities == null || authorities.isEmpty()) {
-                log.error("No authorities found in JWT, authentication may fail");
+                 log.error("No authorities found in JWT, authentication may fail");
             }
 
             Collection<SimpleGrantedAuthority> grantedAuthorities = authorities.stream()

@@ -258,8 +258,6 @@ public class AuthServiceImpl implements AuthService {
 
         String passwordError = CustomValidator.validatePassword(rawPassword);
         String emailError = CustomValidator.validateEmail(email);
-        String phoneError = CustomValidator.validatePhoneNumber(phone);
-
 
 
         if (passwordError != null) {
@@ -267,9 +265,6 @@ public class AuthServiceImpl implements AuthService {
         }
         if (emailError != null){
             throw new IllegalArgumentException(emailError);
-        }
-        if (phoneError != null){
-            throw new IllegalArgumentException(phoneError);
         }
 
         CustomValidator.validatePassword(rawPassword);

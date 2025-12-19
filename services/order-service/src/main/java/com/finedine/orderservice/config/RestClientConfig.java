@@ -25,4 +25,9 @@ public class RestClientConfig {
                 .build();
     }
 
+    @Bean
+    public RestClient.Builder restClientBuilder() {
+        return RestClient.builder();
+    }
+
 }

@@ -1,9 +1,5 @@
 package com.finedine.restaurantservice.dto;
 
-
-import lombok.Builder;
-
-@Builder
 public record RestaurantResponse(
         Long restaurantId,
         String externalId,

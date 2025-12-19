@@ -3,6 +3,7 @@ package com.finedine.restaurantservice.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+@ToString
 @AllArgsConstructor
 @NoArgsConstructor
 @Setter

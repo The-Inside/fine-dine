@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -19,5 +20,8 @@ public interface MenuRepository extends JpaRepository<MenuItem, Long> {
     @Query("SELECT m.name AS name, m.description as description, m.price AS price, m.category as category, m.isAvailable as available " +
             "FROM MenuItem m WHERE m.restaurant.restaurantId = :restaurantId")
     Page<MenuItemResponse> findByRestaurantId(Long restaurantId, Pageable pageable);
+
+    @Query("SELECT m FROM MenuItem m WHERE m.id IN :ids")
+    List<MenuItem> findByIdIn(List<Long> ids);
 
 }

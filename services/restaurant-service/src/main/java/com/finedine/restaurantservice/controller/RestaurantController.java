@@ -14,6 +14,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequiredArgsConstructor
 @Slf4j
@@ -73,6 +75,12 @@ public class RestaurantController {
     public Page<MenuItemResponse> getRestaurantMenu(@PathVariable Long restaurantId,
                                                     @PageableDefault Pageable pageable){
         return restaurantService.getRestaurantMenu(restaurantId, pageable);
+    }
+
+    @GetMapping("/internal/menu-items")
+    @ResponseStatus(HttpStatus.OK)
+    public List<MenuIResponse> getMenuItemsByIds(@RequestParam List<Long> ids) {
+        return restaurantService.getMenuItemsByIds(ids);
     }
 
     @PatchMapping("/menu/{menuItemId}")

@@ -62,11 +62,19 @@ public class Common {
     public String validatePhoneNumber(@NonNull String phoneNumber) {
         PhoneNumberUtil phoneNumberUtil = PhoneNumberUtil.getInstance();
         try {
-            Phonenumber.PhoneNumber parsedNumber = phoneNumberUtil.parse(phoneNumber, null);
+            // Remove leading zero if present and phone number doesn't start with '+'
+            String normalizedNumber = phoneNumber;
+            if (!phoneNumber.startsWith("+") && phoneNumber.startsWith("0")) {
+                normalizedNumber = phoneNumber.substring(1);
+            }
+
+            Phonenumber.PhoneNumber parsedNumber = phoneNumberUtil.parse(normalizedNumber, "GH");
+
             if (!phoneNumberUtil.isValidNumber(parsedNumber)) {
                 throw new PhoneNumberValidationException(INVALID_PHONE_NUMBER);
             }
-            return phoneNumber;
+
+            return phoneNumberUtil.format(parsedNumber, PhoneNumberUtil.PhoneNumberFormat.E164);
 
         } catch (NumberParseException e) {
             throw new PhoneNumberValidationException(INVALID_PHONE_NUMBER, e);

@@ -2,5 +2,41 @@ spring:
   application:
     name: order-service
 
+  datasource:
+    url: jdbc:h2:mem:testdb
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+
+  security:
+    oauth2:
+      resource-server:
+        jwt:
+          issuer-uri: http://localhost:8081
+          jwk-set-uri: http://localhost:8081/.well-known/jwks.json
+
+  autoconfigure:
+    exclude:
+      - io.awspring.cloud.autoconfigure.sqs.SqsAutoConfiguration
+      - io.awspring.cloud.autoconfigure.sns.SnsAutoConfiguration
+      - io.awspring.cloud.autoconfigure.s3.S3AutoConfiguration
+
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+        ddl-auto: create-drop
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    database-platform: org.hibernate.dialect.H2Dialect
+  cloud:
+    refresh:
+      enabled: false
+rate-limit:
+  enabled: false
+
+restaurant-service:
+  url: http://localhost:8083
+
 server :
   port: 8082

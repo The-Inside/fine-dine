@@ -37,13 +37,12 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
-    public OrderResponse createOrder(CreateOrderRequest request, SecurityUser securityUser) {
+    public OrderResponse createOrder( CreateOrderRequest request, SecurityUser securityUser) {
         log.info("Creating order for customer: {}, restaurant: {}",
                 securityUser.externalId(), request.restaurantId());
 
         orderValidationService.validateCreateOrderRequest(request);
 
-        // Fetch menu items with prices from restaurant service using HTTP Interface
         List<Long> menuItemIds = request.orderItems().stream()
                 .map(OrderItemRequest::menuItemId)
                 .toList();
@@ -52,10 +51,8 @@ public class OrderServiceImpl implements OrderService {
         log.info("Fetched {} menu items from restaurant service", menuItems.size());
         log.info("Menu items: {}", menuItems);
 
-        // Validate all menu items exist and are available
         validateMenuItems(menuItems, request);
 
-        // Create a map for quick price lookup
         Map<Long, MenuItemDTO> menuItemMap = menuItems.stream()
                 .collect(Collectors.toMap(MenuItemDTO::id, item -> item));
 
@@ -87,7 +84,6 @@ public class OrderServiceImpl implements OrderService {
             throw new BadRequestException("One or more menu items not found");
         }
 
-        // Validate all items belong to the same restaurant
         boolean allFromSameRestaurant = menuItems.stream()
                 .allMatch(item -> item.restaurantId().equals(request.restaurantId()));
 
@@ -96,7 +92,6 @@ public class OrderServiceImpl implements OrderService {
             throw new BadRequestException("All menu items must belong to the specified restaurant");
         }
 
-        // Validate all items are available
         List<Long> unavailableItems = menuItems.stream()
                 .filter(item -> !item.isAvailable())
                 .map(MenuItemDTO::id)

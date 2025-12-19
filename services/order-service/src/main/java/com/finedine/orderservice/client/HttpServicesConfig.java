@@ -15,7 +15,7 @@ public class HttpServicesConfig {
     @Bean
     public RestaurantServiceClient restaurantServiceClient(RestClient.Builder restClientBuilder) {
         RestClient restClient = restClientBuilder
-                .baseUrl("http://localhost:8085")
+                .baseUrl("http://RESTAURANT-SERVICE")
                 .build();
 
         RestClientAdapter adapter = RestClientAdapter.create(restClient);
